@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Cargo Management</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="my-4">Cargo Management</h1>
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="/">Spaceship Management</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a class="nav-link" href="/home">Home</a>
+              <a class="nav-link" href="/login">Login</a>
+              <a class="nav-link" href="/spaceship">Spaceship</a>
+              <a class="nav-link" href="/captain">Captain</a>
+    
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      <h2 class="my-4">Add Cargo</h2>
+      <form id="add-cargo-form" method="POST" action="/api/cargo">
+        <input type="hidden" id="cargo-id">
+
+        <div class="form-group">
+          <label for="shipid">Ship ID:</label>
+          <input type="number" id="shipid" name="shipid" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label for="cargotype">Cargo Type:</label>
+          <input type="text" id="cargotype" name="cargotype" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label for="weight">Weight:</label>
+          <input type="number" id="weight" name="weight" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label for="departure">Departure:</label>
+          <input type="text" name="departure" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label for="arrival">Arrival:</label>
+          <input type="text" name="arrival" class="form-control" required>
+        </div>
+
+        <button class="btn btn-primary" class="submit">Submit</button>
+      </form>
+
+      <h2 class="my-4">Cargo List</h2>
+      <table id="cargo-table" class="table">
+        <thead>
+          <tr>
+            <th>Cargo Type</th>
+            <th>Weight</th>
+            <th>Edit Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cargo in cargos %}
+          <tr>
+            <td>{{ cargo.cargotype }}</td>
+            <td>{{ cargo.weight }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  </body>
+
+  <script>
+const API_URL = 'http://localhost:3000/api/cargo';
+const cargoTable = document.getElementById('cargo-table');
+const addCargoForm = document.getElementById('add-cargo-form');
+
+function editCargo(id) {
+  const cargo = {
+    cargotype: prompt('Enter new cargo type:'),
+    weight: prompt('Enter new weight:'),
+    departure: prompt('Enter new departure:'),
+    arrival: prompt('Enter new arrival:')
+  };
+
+  const requestOptions = {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(cargo)
+  };
+
+  fetch(`${API_URL}/${id}`, requestOptions)
+    .then(response => response.text())
+    .then(result => {
+      console.log(result);
+      const rowToUpdate = cargoTable.querySelector(`tr[data-id="${id}"]`);
+      rowToUpdate.querySelector('td:nth-child(1)').textContent = cargo.cargotype;
+      rowToUpdate.querySelector('td:nth-child(2)').textContent = cargo.weight;
+      rowToUpdate.querySelector('td:nth-child(3)').textContent = cargo.departure;
+      rowToUpdate.querySelector('td:nth-child(4)').textContent = cargo.arrival;
+    });
+}
+
+
+function getAllCargos() {
+    fetch(API_URL)
+        .then(response => response.json())
+        .then(cargos => {
+            cargos.forEach(cargo => {
+                addCargoToTable(cargo);
+            });
+        });
+}
+
+function addCargoToTable(cargo) {
+  const row = document.createElement('tr');
+  row.dataset.id = cargo.id;
+
+  const typeCell = document.createElement('td');
+  typeCell.textContent = cargo.cargotype;
+  row.appendChild(typeCell);
+
+  const weightCell = document.createElement('td');
+  weightCell.textContent = cargo.weight;
+  row.appendChild(weightCell);
+
+  const actionsCell = document.createElement('td');
+  const editBtn = document.createElement('button');
+  editBtn.textContent = 'Edit';
+  editBtn.dataset.id = cargo.id;
+  editBtn.addEventListener('click', () => editCargo(cargo.id));
+  actionsCell.appendChild(editBtn);
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.textContent = 'Delete';
+  deleteBtn.dataset.id = cargo.id;
+  deleteBtn.addEventListener('click', () => deleteCargo(cargo.id));
+  actionsCell.appendChild(deleteBtn);
+
+  row.appendChild(actionsCell);
+  cargoTable.appendChild(row);
+}
+
+
+
+function addCargo(cargo) {
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams(cargo)
+    };
+
+    fetch(API_URL, requestOptions)
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === 'success') {
+                addCargoToTable(result.cargo);
+                addCargoForm.reset();
+            }
+        });
+}
+
+function deleteCargo(id) {
+    fetch(`${API_URL}?id=${id}`, {
+        method: 'DELETE'
+    })
+        .then(response => response.text())
+        .then(result => {
+            console.log(result);
+            const rowToDelete = cargoTable.querySelector(`tr[data-id="${id}"]`);
+            cargoTable.removeChild(rowToDelete);
+        });
+}
+
+addCargoForm.addEventListener('submit', event => {
+    event.preventDefault();
+
+    const cargo = {
+        cargotype: addCargoForm.querySelector('#cargotype').value,
+        weight: addCargoForm.querySelector('#weight').value,
+        departure: addCargoForm.querySelector('#departure').value,
+        arrival: addCargoForm.querySelector('#arrival').value
+    };
+
+    addCargo(cargo);
+    
+});
+
+getAllCargos();
+addCargoToTable(); 
+addCargoForm();
+  </script>
+
+</html>

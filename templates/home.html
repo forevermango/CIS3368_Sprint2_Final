@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-4 mb-4">Welcome {{ username }}!</h1>
+        <h2>Select a Table</h2>
+        <button class="btn btn-primary" onclick="location.href='/captain'">Captain</button>
+        <button class="btn btn-primary" onclick="location.href='/cargo'">Cargo</button>
+        <button class="btn btn-primary" onclick="location.href='/spaceship'">Spaceship</button>
+
+        <h2 class="mt-4">Cargo List</h2>
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Weight</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cargo in cargos %}
+                <tr>
+                    <td>{{ cargo.cargotype }}</td>
+                    <td>{{ cargo.weight }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+<script>
+</script>
+</html>
+

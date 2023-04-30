@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Spaceship Management</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+	<style>
+		body {
+			margin: 20px;
+		}
+	</style>
+</head>
+<body>
+	<h1>Spaceship Management</h1>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+		<a class="navbar-brand" href="/">Spaceship Management</a>
+		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+		<div class="collapse navbar-collapse" id="navbarNav">
+			<ul class="navbar-nav">
+				<li class="nav-item">
+					<a class="nav-link" href="/home">Home</a>
+          <a class="nav-link" href="/login">Login</a>
+          <a class="nav-link" href="/cargo">Captain</a>
+          <a class="nav-link" href="/captain">Cargo</a>
+
+				</li>
+			</ul>
+		</div>
+	</nav>
+	<h2>Add Spaceship</h2>
+	<form id="add-spaceship-form" method="POST" action="/spaceship/add_spaceship">
+
+		<div class="form-group">
+			<label for="shipid">Ship ID:</label>
+			<input type="number" class="form-control" id="shipid" name="shipid" required>
+		</div>
+
+		<div class="form-group">
+			<label for="captainid">Captain ID:</label>
+			<input type="number" class="form-control" id="captainid" name="captainid" required>
+		</div>
+
+
+		<div class="form-group">
+			<label for="maxweight">Spaceship Maxweight:</label>
+			<input type="text" class="form-control" id="maxweight" name="maxweight" required>
+		</div>
+
+    <button class="submit">Submit</button>
+	</form>
+
+	<h2>Spaceship List</h2>
+	<table id="spaceship-table" class="table">
+		<thead>
+			<tr>
+				<th>Ship ID</th>
+				<th>Maxweight</th>
+				<th>Edit Delete</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for spaceship in spaceships %}
+			<tr>
+				<td>{{ spaceship.id }}</td>
+				<td>{{ spaceship.maxweight }}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+
+	<!-- Add the Bootstrap JavaScript and jQuery libraries -->
+	<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+<script>
+const API_URL = 'http://localhost:3000/api/spaceship';
+const spaceshipTable = document.getElementById('spaceship-table');
+const addSpaceshipForm = document.getElementById("add-spaceship-form");
+
+function getAllSpaceships() {
+  fetch(API_URL)
+    .then(response => response.json())
+    .then(spaceships => {
+      if (!Array.isArray(spaceships)) {
+        spaceships = [spaceships];
+      }
+      spaceships.forEach(spaceship => {
+        addSpaceshipToTable(spaceship);
+      });
+    });
+}
+
+
+function editSpaceship(id) {
+  const spaceship = {
+    shipid: prompt('Enter new Ship ID:'),
+    maxweight: prompt('Enter new Spaceship Maxweight:'),
+    captainid: parseInt(prompt('Enter new Captain ID:'), 10)
+  };
+
+  const requestOptions = {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(spaceship)
+  };
+
+  fetch(`${API_URL}/${id}`, requestOptions)
+    .then(response => response.text())
+    .then(result => {
+      console.log(result);
+      const rowToUpdate = spaceshipTable.querySelector(`tr[data-id="${id}"]`);
+      rowToUpdate.querySelector('td:nth-child(1)').textContent = spaceship.id;
+      rowToUpdate.querySelector('td:nth-child(2)').textContent = spaceship.maxweight;
+      rowToUpdate.querySelector('td:nth-child(3)').textContent = spaceship.captainid;
+    });
+}
+
+addSpaceshipForm.addEventListener('submit', event => {
+    event.preventDefault();
+
+    const spaceship = {
+        shipid: addSpaceshipForm.querySelector('#shipid').value,
+        maxweight: addSpaceshipForm.querySelector('#maxweight').value,
+    };
+
+    addSpaceship(spaceship);
+});
+
+
+
+
+
+function addSpaceshipToTable(spaceship) {
+  const row = document.createElement('tr');
+  row.dataset.id = spaceship.id;
+
+  const shipIDCell = document.createElement('td');
+  shipIDCell.textContent = spaceship.id;
+  row.appendChild(shipIDCell);
+
+  const maxweightCell = document.createElement('td');
+  maxweightCell.textContent = spaceship.maxweight;
+  row.appendChild(maxweightCell);
+
+  const actionsCell = document.createElement('td');
+  const editBtn = document.createElement('button');
+  editBtn.textContent = 'Edit';
+  editBtn.dataset.id = spaceship.id;
+  editBtn.addEventListener('click', (event) => editSpaceship(event.target.dataset.id));
+  actionsCell.appendChild(editBtn);
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.textContent = 'Delete';
+  deleteBtn.dataset.id = spaceship.id;
+  deleteBtn.addEventListener('click', () => deleteSpaceship(spaceship.id));
+  actionsCell.appendChild(deleteBtn);
+
+  row.appendChild(actionsCell);
+  spaceshipTable.appendChild(row);
+}
+
+
+
+
+function addSpaceship(spaceship) {
+  if (!spaceship) {
+    console.error('Cannot add undefined spaceship to table.');
+    return;
+  }
+  const requestOptions = {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(spaceship)
+};
+
+  fetch(API_URL, requestOptions)
+    .then(response => response.json())
+    .then(result => {
+      if (result.status === 'success') {
+        addSpaceshipToTable(result.spaceship);
+        addSpaceshipForm.reset();
+      }
+    })
+}
+  
+
+
+
+function deleteSpaceship(id) {
+    fetch(`${API_URL}/${id}`, {
+        method: 'DELETE'
+    })
+        .then(response => response.text())
+        .then(result => {
+            console.log(result);
+            const rowToDelete = document.querySelector(`tr[data-id="${id}"]`);
+            rowToDelete.parentNode.removeChild(rowToDelete);
+            
+        });
+        
+}
+
+
+getAllSpaceships();
+
+</script>
+</html>

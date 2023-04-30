@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Captain Management</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="my-4">Captain Management</h1>
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="/">Spaceship Management</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <a class="nav-link" href="/home">Home</a>
+              <a class="nav-link" href="/login">Login</a>
+              <a class="nav-link" href="/spaceship">Spaceship</a>
+              <a class="nav-link" href="/cargo">Cargo</a>
+    
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      <h2 class="my-4">Add Captain</h2>
+      <form id="add-captain-form" method="POST" action="/captain/add_captain">
+        <input type="hidden" id="captain-id">
+
+        <div class="form-group">
+          <label for="firstname">First Name:</label>
+          <input type="text" id="firstname" name="firstname" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label for="lastname">Last Name:</label>
+          <input type="text" id="lastname" name="lastname" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label for="captainrank">Captain Rank:</label>
+          <input type="text" id="captainrank" name="captainrank" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label for="homeplanet">Home Planet:</label><br>
+          <input type="text" name="homeplanet" class="form-control" required>
+        </div>
+
+        <button class="btn btn-primary">Submit</button>
+      </form>
+
+      <h2 class="my-4">Captain List</h2>
+      <table id="captain-table" class="table">
+        <thead>
+          <tr>
+            <th>Firstname</th>
+            <th>Lastname</th>
+            <th>Captain Rank</th>
+            <th>Home Planet</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for captain in captains %}
+          <tr>
+            <td>{{ captain.firstname }}</td>
+            <td>{{ captain.lastname }}</td>
+            <td>{{ captain.captainrank }}</td>
+            <td>{{ captain.homeplanet }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+
+<script>
+const API_URL = 'http://localhost:3000/api/captain';
+const captainTable = document.getElementById('captain-table');
+const addCaptainForm = document.getElementById('add-captain-form');
+
+
+function getAllCaptains() {
+    fetch(API_URL)
+        .then(response => response.json())
+        .then(captains => {
+            captains.forEach(captain => {
+                addCaptainToTable(captain);
+            });
+        });
+}
+
+function addCaptainToTable(captain) {
+  const row = document.createElement('tr');
+  row.dataset.id = captain.id;
+
+  const firstnameCell = document.createElement('td');
+  firstnameCell.textContent = captain.firstname;
+  row.appendChild(firstnameCell);
+
+  const lastnameCell = document.createElement('td');
+  lastnameCell.textContent = captain.lastname;
+  row.appendChild(lastnameCell);
+
+  const rankCell = document.createElement('td');
+  rankCell.textContent = captain.captainrank;
+  row.appendChild(rankCell);
+
+  const planetCell = document.createElement('td');
+  planetCell.textContent = captain.homeplanet;
+  row.appendChild(planetCell);
+
+  const actionsCell = document.createElement('td');
+  const editBtn = document.createElement('button');
+  editBtn.textContent = 'Edit';
+  editBtn.dataset.id = captain.id;
+  editBtn.addEventListener('click', (event) => editCaptain(event.target.dataset.id));
+  actionsCell.appendChild(editBtn);
+
+  const deleteBtn = document.createElement('button');
+  deleteBtn.textContent = 'Delete';
+  deleteBtn.dataset.id = captain.id;
+  deleteBtn.addEventListener('click', () => deleteCaptain(captain.id));
+  actionsCell.appendChild(deleteBtn);
+
+  row.appendChild(actionsCell);
+  captainTable.appendChild(row);
+}
+
+function addCaptain(captain) {
+  const requestOptions = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      firstname: captain.firstname,
+      lastname: captain.lastname,
+      captainrank: captain.captainrank,
+      homeplanet: captain.homeplanet
+    })
+  };
+
+  fetch(`${API_URL}/add_captain`, requestOptions)
+    .then(response => response.json())
+    .then(result => {
+      console.log(result);
+      captain.id = result.id; // Set the id of the captain object
+      addCaptainToTable(captain);
+      addCaptainForm.reset();
+    });
+}
+
+
+
+function editCaptain(id) {
+  const captain = {
+    firstname: prompt('Enter new first name:'),
+    lastname: prompt('Enter new last name:'),
+    captainrank: prompt('Enter new captain rank:'),
+    homeplanet: prompt('Enter new home planet:')
+  };
+
+  const requestOptions = {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(captain)
+  };
+
+  fetch(`${API_URL}/${id}`, requestOptions)
+    .then(response => response.text())
+    .then(result => {
+      console.log(result);
+      const rowToUpdate = captainTable.querySelector(`tr[data-id="${id}"]`);
+      rowToUpdate.querySelector('td:nth-child(1)').textContent = captain.firstname;
+      rowToUpdate.querySelector('td:nth-child(2)').textContent = captain.lastname;
+      rowToUpdate.querySelector('td:nth-child(3)').textContent = captain.captainrank;
+      rowToUpdate.querySelector('td:nth-child(4)').textContent = captain.homeplanet;
+    });
+}
+
+
+
+function deleteCaptain(id) {
+  fetch(`${API_URL}?id=${id}`, {
+    method: 'DELETE'
+  })
+  .then(response => response.text())
+  .then(result => {
+    console.log(result);
+    const rowToDelete = captainTable.querySelector(`tr[data-id="${id}"]`);
+    captainTable.removeChild(rowToDelete);
+  });
+}
+
+
+addCaptainForm.addEventListener('submit', event => {
+event.preventDefault();
+
+
+const captain = {
+    firstname: addCaptainForm.querySelector('#firstname').value,
+    lastname: addCaptainForm.querySelector('#lastname').value,
+    captainrank: addCaptainForm.querySelector('#captainrank').value,
+    homeplanet: addCaptainForm.querySelector('#homeplanet').value
+};
+
+addCaptain(captain);
+});
+
+getAllCaptains();
+
+</script>
+
+</html>
+
+
